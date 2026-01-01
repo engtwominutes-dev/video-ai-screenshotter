@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, File, UploadFile
 
 app = FastAPI()
 
@@ -7,7 +7,7 @@ def root():
     return {"status": "backend running"}
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_video(file: UploadFile = File(...)):
     return {
         "filename": file.filename,
         "content_type": file.content_type
