@@ -9,3 +9,4 @@ Features
 • Up to 100 screenshots
 • JPEG or PNG export
 • Free and open source
+.
