@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Screenshot Tool</title>
+</head>
+<body>
+    <h2>Upload Video</h2>
+
+    <form id="uploadForm">
+        <input type="file" id="video" required><br><br>
+
+        <label>Screenshots:</label>
+        <input type="number" id="count" value="10"><br><br>
+
+        <label>Format:</label>
+        <select id="format">
+            <option value="jpg">JPG</option>
+            <option value="png">PNG</option>
+        </select><br><br>
+
+        <button type="submit">Upload</button>
+    </form>
+
+    <p id="status"></p>
+
+    <script>
+        const form = document.getElementById("uploadForm");
+        const status = document.getElementById("status");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById("video");
+            const count = document.getElementById("count").value;
+            const format = document.getElementById("format").value;
+
+            const data = new FormData();
+            data.append("file", fileInput.files[0]);
+            data.append("screenshot_count", count);
+            data.append("image_format", format);
+
+            status.innerText = "Uploading...";
+
+            const response = await fetch("http://127.0.0.1:8000/upload", {
+                method: "POST",
+                body: data
+            });
+
+            const result = await response.json();
+
+            status.innerHTML =
+                "Done. <a href='http://127.0.0.1:8000" +
+                result.download_url +
+                "'>Download ZIP</a>";
+        });
+    </script>
+</body>
+</html>
