@@ -43,9 +43,7 @@
             status.innerText = "Uploading...";
 
             try {
-                const response = await fetch(
-                    "/upload",
-                    {
+                const response = await fetch("https://video-ai-screenshottter-production.up.railway.app/upload", {
                         method: "POST",
                         body: data
                     }
