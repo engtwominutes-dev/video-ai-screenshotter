@@ -13,6 +13,3 @@ async def upload(file: UploadFile = File(...)):
         "filename": file.filename,
         "content_type": file.content_type
     }
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
