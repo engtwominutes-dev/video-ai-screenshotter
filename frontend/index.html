@@ -7,16 +7,19 @@
     <h2>Upload Video</h2>
 
     <form id="uploadForm">
-        <input type="file" id="video" required><br><br>
+        <input type="file" id="video" required>
+        <br><br>
 
         <label>Screenshots:</label>
-        <input type="number" id="count" value="10"><br><br>
+        <input type="number" id="count" value="5">
+        <br><br>
 
         <label>Format:</label>
         <select id="format">
             <option value="jpg">JPG</option>
             <option value="png">PNG</option>
-        </select><br><br>
+        </select>
+        <br><br>
 
         <button type="submit">Upload</button>
     </form>
@@ -31,6 +34,8 @@
             e.preventDefault();
 
             const fileInput = document.getElementById("video");
+            const count = document.getElementById("count").value;
+            const format = document.getElementById("format").value;
 
             if (!fileInput.files.length) {
                 status.innerText = "No file selected";
@@ -39,11 +44,15 @@
 
             const data = new FormData();
             data.append("file", fileInput.files[0]);
+            data.append("screenshot_count", count);
+            data.append("image_format", format);
 
             status.innerText = "Uploading...";
 
             try {
-                const response = await fetch("https://video-ai-screenshottter-production.up.railway.app/upload", {
+                const response = await fetch(
+                    "https://video-ai-screenshottter-production.up.railway.app/upload",
+                    {
                         method: "POST",
                         body: data
                     }
@@ -52,8 +61,8 @@
                 const result = await response.json();
                 status.innerText = result.message;
             } catch (err) {
-                console.error(err);
                 status.innerText = "Upload failed";
+                console.error(err);
             }
         });
     </script>
