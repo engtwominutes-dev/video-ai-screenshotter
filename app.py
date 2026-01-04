@@ -1,3 +1,4 @@
+print("APP IMPORT STARTED")
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 import os
