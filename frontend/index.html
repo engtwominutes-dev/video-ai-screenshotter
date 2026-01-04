@@ -31,27 +31,32 @@
             e.preventDefault();
 
             const fileInput = document.getElementById("video");
-            const count = document.getElementById("count").value;
-            const format = document.getElementById("format").value;
+
+            if (!fileInput.files.length) {
+                status.innerText = "No file selected";
+                return;
+            }
 
             const data = new FormData();
             data.append("file", fileInput.files[0]);
-            data.append("screenshot_count", count);
-            data.append("image_format", format);
 
             status.innerText = "Uploading...";
 
-            const response = await fetch("http://127.0.0.1:8000/upload", {
-                method: "POST",
-                body: data
-            });
+            try {
+                const response = await fetch(
+                    "/upload",
+                    {
+                        method: "POST",
+                        body: data
+                    }
+                );
 
-            const result = await response.json();
-
-            status.innerHTML =
-                "Done. <a href='http://127.0.0.1:8000" +
-                result.download_url +
-                "'>Download ZIP</a>";
+                const result = await response.json();
+                status.innerText = result.message;
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Upload failed";
+            }
         });
     </script>
 </body>
