@@ -1,4 +1,3 @@
-from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +7,6 @@ print("APP IMPORT STARTED")
 
 app = FastAPI()
 
-# CORS FIX
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,14 +25,11 @@ async def root():
 @app.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
-
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
-    return JSONResponse({
-        "message": "File uploaded successfully",
-        "filename": file.filename
-    })
+    return {"message": "File uploaded successfully", "filename": file.filename}
+
 @app.get("/files")
 async def list_files():
     return {"files": os.listdir(UPLOAD_DIR)}
