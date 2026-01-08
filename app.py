@@ -33,3 +33,11 @@ async def upload_video(file: UploadFile = File(...)):
 @app.get("/files")
 async def list_files():
     return {"files": os.listdir(UPLOAD_DIR)}
+from fastapi.responses import FileResponse
+
+@app.get("/download/{filename}")
+async def download_file(filename: str):
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        return {"error": "File not found"}
+    return FileResponse(file_path, filename=filename)
