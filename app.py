@@ -35,3 +35,6 @@ async def upload_video(file: UploadFile = File(...)):
         "message": "File uploaded successfully",
         "filename": file.filename
     })
+@app.get("/files")
+async def list_files():
+    return {"files": os.listdir(UPLOAD_DIR)}
