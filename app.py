@@ -27,10 +27,10 @@ async def upload(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
-    return {
-        "message": "Upload successful",
-        "filename": file.filename
-    }
+   return {
+    "message": "Screenshots generated successfully",
+    "download_url": f"/download/{zip_name}"
+}
 
 @app.get("/files")
 def list_files():
