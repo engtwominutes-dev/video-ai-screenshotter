@@ -57,14 +57,15 @@ async def upload_video(
     os.makedirs(frames_path, exist_ok=True)
 
     subprocess.run(
-        [
-            "ffmpeg",
-            "-i", video_path,
-            "-vf", f"fps={screenshot_count}",
-            os.path.join(frames_path, f"shot_%03d.{image_format}")
-        ],
-        check=True
-    )
+    [
+        "ffmpeg",
+        "-i", video_path,
+        "-vf", f"select=not(mod(n\\,{screenshot_count}))",
+        "-vsync", "vfr",
+        os.path.join(frames_path, f"shot_%03d.{image_format}")
+    ],
+    check=True
+)
 
     zip_path = os.path.join(ZIPS_DIR, f"{video_id}.zip")
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
