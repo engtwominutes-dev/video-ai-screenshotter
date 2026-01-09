@@ -5,6 +5,7 @@ import subprocess
 import os
 import uuid
 import zipfile
+import json
 
 app = FastAPI()
 
@@ -15,55 +16,73 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = os.getcwd()
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-FRAMES_DIR = os.path.join(BASE_DIR, "frames")
-ZIP_DIR = os.path.join(BASE_DIR, "zips")
+BASE = os.getcwd()
+UPLOADS = os.path.join(BASE, "uploads")
+FRAMES = os.path.join(BASE, "frames")
+ZIPS = os.path.join(BASE, "zips")
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(FRAMES_DIR, exist_ok=True)
-os.makedirs(ZIP_DIR, exist_ok=True)
+os.makedirs(UPLOADS, exist_ok=True)
+os.makedirs(FRAMES, exist_ok=True)
+os.makedirs(ZIPS, exist_ok=True)
 
-FFMPEG_PATH = "/usr/bin/ffmpeg"
+FFMPEG = "/usr/bin/ffmpeg"
+FFPROBE = "/usr/bin/ffprobe"
 
 @app.get("/")
 def health():
     return {"status": "ok"}
 
+def get_duration(video_path):
+    cmd = [
+        FFPROBE,
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "json",
+        video_path
+    ]
+    result = subprocess.check_output(cmd)
+    return float(json.loads(result)["format"]["duration"])
+
 @app.post("/upload")
-async def upload_video(
+async def upload(
     file: UploadFile = File(...),
     screenshot_count: int = Form(...),
     image_format: str = Form(...)
 ):
     uid = str(uuid.uuid4())
-    video_path = os.path.join(UPLOAD_DIR, f"{uid}_{file.filename}")
-    output_dir = os.path.join(FRAMES_DIR, uid)
-    zip_path = os.path.join(ZIP_DIR, f"{uid}.zip")
+    video_path = os.path.join(UPLOADS, f"{uid}_{file.filename}")
+    out_dir = os.path.join(FRAMES, uid)
+    zip_path = os.path.join(ZIPS, f"{uid}.zip")
 
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
 
     with open(video_path, "wb") as f:
         f.write(await file.read())
 
-    cmd = [
-        FFMPEG_PATH,
-        "-i", video_path,
-        "-vf", f"fps={screenshot_count}",
-        os.path.join(output_dir, f"shot_%03d.{image_format}")
-    ]
+    duration = get_duration(video_path)
+    interval = duration / screenshot_count
 
-    subprocess.run(cmd, check=True)
+    for i in range(screenshot_count):
+        timestamp = interval * i
+        output = os.path.join(out_dir, f"shot_{i+1}.{image_format}")
+
+        subprocess.run([
+            FFMPEG,
+            "-ss", str(timestamp),
+            "-i", video_path,
+            "-frames:v", "1",
+            output
+        ], check=True)
 
     with zipfile.ZipFile(zip_path, "w") as zipf:
-        for img in os.listdir(output_dir):
-            zipf.write(os.path.join(output_dir, img), img)
+        for f in os.listdir(out_dir):
+            zipf.write(os.path.join(out_dir, f), f)
 
     return {
         "message": "Screenshots generated",
         "download_url": f"/download/{uid}.zip"
     }
 
-@app.get("/download/{zip_name}")
-def download(zip_name: str):
-    return FileResponse(os.path.join(ZIP_DIR, zip_name), filename=zip_name)
+@app.get("/download/{name}")
+def download(name: str):
+    return FileResponse(os.path.join(ZIPS, name), filename=name)
