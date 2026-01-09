@@ -33,14 +33,13 @@ FFPROBE = "/usr/bin/ffprobe"
 def health():
     return {"status": "ok"}
 
-def get_duration(video_path):
-    cmd = [
-        FFPROBE,
-        "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "json",
-        video_path
-    ]
+subprocess.run([
+    ffmpeg_static.ffmpeg_path,
+    "-ss", str(step * i),
+    "-i", video_path,
+    "-frames:v", "1",
+    output_path
+], check=True)
     result = subprocess.check_output(cmd)
     return float(json.loads(result)["format"]["duration"])
 
