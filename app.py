@@ -1,15 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import os
+import shutil
 import subprocess
 import uuid
-import zipfile
-import shutil
 
 app = FastAPI()
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,75 +18,54 @@ app.add_middleware(
 BASE_DIR = os.getcwd()
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 FRAMES_DIR = os.path.join(BASE_DIR, "frames")
-ZIPS_DIR = os.path.join(BASE_DIR, "zips")
+ZIP_DIR = os.path.join(BASE_DIR, "zips")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(FRAMES_DIR, exist_ok=True)
-os.makedirs(ZIPS_DIR, exist_ok=True)
+os.makedirs(ZIP_DIR, exist_ok=True)
 
 
 @app.get("/")
 def root():
-    return {"status": "backend running"}
+    return {"status": "ok"}
 
 
 @app.post("/upload")
 async def upload_video(
     file: UploadFile = File(...),
-    screenshot_count: int = Form(...),
-    image_format: str = Form(...)
+    screenshot_count: int = 5,
+    image_format: str = "jpg"
 ):
-    job_id = str(uuid.uuid4())
+    video_id = str(uuid.uuid4())
+    video_path = os.path.join(UPLOAD_DIR, f"{video_id}_{file.filename}")
 
-    video_path = os.path.join(UPLOAD_DIR, f"{job_id}_{file.filename}")
-    frame_path = os.path.join(FRAMES_DIR, job_id)
-    zip_path = os.path.join(ZIPS_DIR, f"{job_id}.zip")
+    with open(video_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-    os.makedirs(frame_path, exist_ok=True)
+    output_dir = os.path.join(FRAMES_DIR, video_id)
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Save uploaded file
-    with open(video_path, "wb") as f:
-        f.write(await file.read())
-
-    # FFmpeg command
-    ffmpeg_cmd = [
+    cmd = [
         "ffmpeg",
         "-i", video_path,
         "-vf", f"fps={screenshot_count}",
-        f"{frame_path}/frame_%03d.{image_format}"
+        os.path.join(output_dir, f"frame_%03d.{image_format}")
     ]
 
-    try:
-        subprocess.run(ffmpeg_cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": "FFmpeg failed", "details": str(e)}
-        )
+    subprocess.run(cmd, check=True)
 
-    # Zip screenshots
-    with zipfile.ZipFile(zip_path, "w") as zipf:
-        for file_name in os.listdir(frame_path):
-            zipf.write(
-                os.path.join(frame_path, file_name),
-                arcname=file_name
-            )
-
-    # Cleanup
-    os.remove(video_path)
-    shutil.rmtree(frame_path)
+    zip_path = os.path.join(ZIP_DIR, f"{video_id}.zip")
+    shutil.make_archive(zip_path.replace(".zip", ""), "zip", output_dir)
 
     return {
-        "message": "Screenshots generated",
-        "download_url": f"/download/{job_id}"
+        "message": "Screenshots created",
+        "download_url": f"/download/{video_id}.zip"
     }
 
 
-@app.get("/download/{job_id}")
-def download_zip(job_id: str):
-    zip_path = os.path.join(ZIPS_DIR, f"{job_id}.zip")
-
-    if not os.path.exists(zip_path):
-        return JSONResponse(status_code=404, content={"error": "File not found"})
-
-    return FileResponse(zip_path, filename=f"screenshots_{job_id}.zip")
+@app.get("/download/{filename}")
+def download(filename: str):
+    file_path = os.path.join(ZIP_DIR, filename)
+    if not os.path.exists(file_path):
+        return {"error": "File not found"}
+    return FileResponse(file_path, filename=filename)
