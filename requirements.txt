@@ -1,4 +1,4 @@
 fastapi
 uvicorn
 python-multipart
-ffmpeg-static
+imageio-ffmpeg
